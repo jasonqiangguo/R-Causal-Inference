@@ -98,10 +98,6 @@ summary(lm18) #coefficient of abd          1.802e-02  1.174e-02   1.535    0.149
 
 
 
-###############
-## Problem 3###
-###############
-
 ## sensitivity analysis of the relation between abd and vote05
 
 data2$abd_1 <- scale(data2$abd) 
