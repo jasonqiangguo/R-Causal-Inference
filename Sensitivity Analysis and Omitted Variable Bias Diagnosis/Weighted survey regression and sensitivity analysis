@@ -1,0 +1,211 @@
+#########################################################
+## Weighted survey regression and sensitivity analysis ##
+#########################################################
+
+getwd()
+setwd("C:/Study/NYU/Quant II/Pst3")
+
+data<- read.dta("mydata.dta")
+require(survey)
+
+
+datanonabd <- data[which(data$abd==0 & data$found == 1),] 
+## create a dataset with abducted == 0 and found == 1
+
+
+## calculate weighted.mean
+attach(datanonabd)
+weighted.mean(vote05, w_abs2, na.rm=T)
+weighted.mean(comm_mobil, w_abs2, na.rm=T)
+weighted.mean(pol_job, w_abs2, na.rm=T)
+weighted.mean(group, w_abs2, na.rm=T)
+weighted.mean(g_peace, w_abs2, na.rm=T)
+weighted.mean(g_water, w_abs2, na.rm=T)
+weighted.mean(g_drama, w_abs2, na.rm=T)
+weighted.mean(g_sport, w_abs2, na.rm=T)
+weighted.mean(g_farm, w_abs2, na.rm=T)
+weighted.mean(g_skool, w_abs2, na.rm=T)
+weighted.mean(g_church, w_abs2, na.rm=T)
+weighted.mean(church, w_abs2, na.rm=T)
+weighted.mean(volunteer, w_abs2, na.rm=T)
+weighted.mean(datanonabd$elders_disobey, w_abs2, na.rm=T)
+weighted.mean(datanonabd$asocial75, w_abs2, na.rm=T)
+weighted.mean(datanonabd$fight, w_abs2, na.rm=T)
+weighted.mean(datanonabd$quarrelsome, w_abs2, na.rm=T)
+weighted.mean(datanonabd$threaten, w_abs2, na.rm=T)
+
+
+data2 <- data[which(data$found == 1),] 
+
+
+## one way to do weighted survey regression
+
+attach(data2)
+weight<-svydesign(id=~camp, weights=~w_sel_abs, data=data2, strata = stratum, nest = T)
+lm1 <- svyglm(vote05 ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm1) #coefficient of abd          1.077e-01  4.257e-02   2.530   0.0251 *
+
+lm2 <- svyglm(comm_mobil ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm2) #coefficient of abd          3.356e-02  1.184e-02   2.834   0.0141 *
+
+lm3 <- svyglm(pol_job ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm3) #coefficient of abd          5.303e-03  4.846e-03   1.094    0.294
+
+lm4 <- svyglm(group ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm4) #coefficient of abd         -0.0094254  0.0416336  -0.226   0.8244
+
+lm5 <- svyglm(g_peace ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm5) #coefficient of abd          0.0414798  0.0254321   1.631   0.1269  
+
+lm6 <- svyglm(g_water ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm6) #coefficient of abd         -9.072e-03  7.734e-03  -1.173    0.262
+
+lm7 <- svyglm(g_drama ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm7) #coefficient of abd         -2.210e-02  4.959e-02  -0.446    0.663
+
+lm8 <- svyglm(g_sport ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm8) #coefficient of abd         -0.0622037  0.0454494  -1.369   0.1943
+
+lm9 <- svyglm(g_farm ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm9) #coefficient of abd         -3.931e-04  2.408e-02  -0.016    0.987
+
+lm10 <- svyglm(g_skool ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm10) #coefficient of abd          2.305e-02  2.100e-02   1.098    0.292
+
+lm11 <- svyglm(g_church ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm11) #coefficient of abd          0.0266685  0.0544682   0.490   0.6326
+
+lm12 <- svyglm(church ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm12) #coefficient of abd         -0.0152690  0.0437423  -0.349   0.7326
+
+lm13 <- svyglm(volunteer ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm13) #coefficient of abd          5.857e-03  1.183e-02   0.495   0.6288
+
+lm14 <- svyglm(elders_disobey ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm14) #coefficient of abd          0.0291581  0.0213645   1.365   0.1727
+
+lm15 <- svyglm(asocial75 ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm15) #coefficient of abd         -0.0721984  0.0510182  -1.415   0.1805
+
+lm16 <- svyglm(fight ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm16) #coefficient of abd         -2.634e-02  3.065e-02  -0.859   0.4058
+
+lm17 <- svyglm(quarrelsome ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm17) #coefficient of abd         -0.0035719  0.0113065  -0.316   0.7571 
+
+lm18 <- svyglm(threaten ~ abd + age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96, data=data2, design=weight)
+summary(lm18) #coefficient of abd          1.802e-02  1.174e-02   1.535    0.149
+
+
+
+###############
+## Problem 3###
+###############
+
+## sensitivity analysis of the relation between abd and vote05
+
+data2$abd_1 <- scale(data2$abd) 
+data2$vote05_1 <- scale(data2$vote05)
+alpha <- rnorm(nrow(data2), 0, 1) ## Generate alphas from a normal distribution
+delta <- rnorm(nrow(data2), 0, 1) ## Generate deltas from a normal distribution
+X <- "age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96"
+out<- lm(paste0("vote05_1~abd_1+", X), data2) ## regression without unobserved confounder U
+
+genConfound<- function (x, y) {
+  e <- rnorm(nrow(data2), 0, 1)
+  w <- x * data2$abd_1 + y * data2$vote05_1 + e
+  p <- exp(w)/(1+exp(w))
+  U <- rbinom(nrow(data2), 1, p)
+  return(U)
+}
+## use the properties of logit transformation to generate the unobserved confounder U
+
+
+results <- NULL
+for (i in seq_len(length(alpha))) {
+  U <- genConfound(alpha[i], delta[i])
+  corD <- cor(U, data2$abd_1, use="pairwise.complete.obs")
+  corY <- cor(U, data2$vote05_1, use="pairwise.complete.obs")
+  estTE <- coef(lm(paste0("vote05_1 ~ abd_1 + U +", X), data2))["abd_1"]
+  names(estTE) <- NULL
+  res <- c(estTE = estTE, corD = corD, corY = corY)
+  results <- rbind(results, res)
+}
+## generate the estimated TE including the unobserved confounding covariate U
+head(results)
+
+pdf('sensitivity1.pdf')
+color <- ifelse(results[, "estTE"] <= 0.5 * coef(out)["abd_1"], "red", NA)
+color <- ifelse(is.na(color) & results[, "estTE"] >= 1.5 * coef(out)["abd_1"],"blue", color)  
+color <- ifelse(is.na(color), "green", color)
+pch <- ifelse(results[, "estTE"] <= 0.5 * coef(out)["abd_1"], 2, NA)
+pch <- ifelse(is.na(pch) & results[, "estTE"] >= 1.5 * coef(out)["abd_1"],5, pch)  
+pch <- ifelse(is.na(pch), 1, pch)
+
+plot(results[, "corD"], results[, "corY"], col = color, pch = pch, xlab = "correlation with D",
+     ylab = "correlation with voting", xlim = c(0, 1), ylim = c(0, 1), main = "FIGURE 1. Impact of Relaxing the Assumption of Unconfoundedness")
+mtext(side = 2, text = "(Increase in R-squared)", line = 2)
+mtext(side = 1, text = "(Increase in R-squared)", line = 4)
+legend("topright",legend = c("Set of correlation pairs that does not overturn the result","Set of correlation pairs that overturns the result","Influence of pre-war covariates on voting and abduction"), pch=c(1,2,3), col = c("green","red","black"), cex=0.8)
+points_observed <- read.csv("V2V-fig1.csv")
+points_observed <- points_observed[1:9,]
+points(points_observed$RwP, points_observed$RyP, pch = "+", col = "black", cex = 1)
+text(0.18319667, 0.34574641, label = "Year and location", cex=1, pos=4, col="Black", lwd=10)
+text(0.15589219, 0.28866525, label = "Year of birth", cex=1, pos=4, col="Black", lwd=10)
+text(0.03053662, 0.10892849, label = "Location of birth", cex=1, pos=4, col="Black", lwd=10)
+text(0.00255776, 0.07770063, label = "HH Size", cex=1, pos=4, col="Black", lwd=10)
+text(0.00981271, 0.01160790, label = "Cattle", cex=1, pos=4, col="Black", lwd=10)
+dev.off()
+
+
+## sensitivity analysis of the relation between abd and comm_mobil 
+data2$comm_mobil_1 <- scale(data2$comm_mobil)
+alpha <- rnorm(nrow(data2), 0, 1) ## Generate alphas from a normal distribution
+delta <- rnorm(nrow(data2), 0, 1) ## Generate deltas from a normal distribution
+X <- "age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96"
+out2<- lm(paste0("data2$comm_mobil_1~abd_1+", X), data2) ## regression without unobserved confounder U
+
+genConfound2<- function (x, y) {
+  e <- rnorm(nrow(data2), 0, 1)
+  w <- x * data2$abd_1 + y * data2$comm_mobil_1 + e
+  p <- exp(w)/(1+exp(w))
+  U <- rbinom(nrow(data2), 1, p)
+  return(U)
+}
+## use the properties of logit transformation to generate the unobserved confounder U
+
+
+results1 <- NULL
+for (i in seq_len(length(alpha))) {
+  U <- genConfound2(alpha[i], delta[i])
+  corD <- cor(U, data2$abd_1, use="pairwise.complete.obs")
+  corY <- cor(U, data2$comm_mobil_1, use="pairwise.complete.obs")
+  estTE <- coef(lm(paste0("comm_mobil_1 ~ abd_1 + U +", X), data2))["abd_1"]
+  names(estTE) <- NULL
+  res <- c(estTE = estTE, corD = corD, corY = corY)
+  results1 <- rbind(results1, res)
+}
+## generate the estimated TE including the unobserved confounding covariate U
+head(results1)
+
+pdf('sensitivity2.pdf')
+color <- ifelse(results1[, "estTE"] <= 0.5 * coef(out2)["abd_1"], "red", NA)
+color <- ifelse(is.na(color) & results1[, "estTE"] >= 1.5 * coef(out2)["abd_1"],"blue", color)  ##why?
+color <- ifelse(is.na(color), "green", color)
+pch <- ifelse(results1[, "estTE"] <= 0.5 * coef(out2)["abd_1"], 2, NA)
+pch <- ifelse(is.na(pch) & results1[, "estTE"] >= 1.5 * coef(out2)["abd_1"],5, pch)  
+pch <- ifelse(is.na(pch), 1, pch)
+plot(results1[, "corD"], results1[, "corY"], col = color, pch = pch, xlab = "correlation with D",
+     ylab = "correlation with community mobilizer", xlim = c(0, 1), ylim = c(0, 0.6), main = "FIGURE 2. Impact of Relaxing the Assumption of Unconfoundedness")
+mtext(side = 2, text = "(Increase in R-squared)", line = 2)
+mtext(side = 1, text = "(Increase in R-squared)", line = 4)
+legend("topright",legend = c("Set of correlation pairs that does not overturn the result","Set of correlation pairs that overturns the result","Influence of pre-war covariates on voting and abduction"), pch=c(1,2,3), col = c("green","red","black"), cex=0.8)
+points_observed <- read.csv("V2V-fig1.csv")
+points_observed <- points_observed[1:9,]
+points(points_observed$RwP, points_observed$RyP, pch = "+", col = "black", cex = 1)
+text(0.18319667, 0.34574641, label = "Year and location", cex=1, pos=4, col="Black", lwd=10)
+text(0.15589219, 0.28866525, label = "Year of birth", cex=1, pos=4, col="Black", lwd=10)
+text(0.03053662, 0.10892849, label = "Location of birth", cex=1, pos=4, col="Black", lwd=10)
+text(0.00255776, 0.07770063, label = "HH Size", cex=1, pos=4, col="Black", lwd=10)
+text(0.00981271, 0.01160790, label = "Cattle", cex=1, pos=4, col="Black", lwd=10)
+dev.off()
