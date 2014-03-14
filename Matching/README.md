@@ -15,6 +15,6 @@ matching is needed in assisting (note here: matching never identifies ATE!) to m
 treatment effect (LATE). The matching method that I use is the CEM matching through the operation of MatchiIt commend 
 (http://gking.harvard.edu/cem). The selection pool of covariates is the list of variables in Table 2 of Gibson(2004). I 
 select variables like age, race, profit from the old system, gender and language as the covariates I want to match. For 
-readers the selection should be subject to your own careful consideration about which covariate could be regarded as having pre-treatment effect on the potential outcome. I also present test mechanisms (t-test and Kolmogorov-Smirnov test) to check whether the matching method acutally improves the balance of covariates for treatment and control groups. 
+readers the selection should be subject to your own careful consideration of which covariate could be regarded as having pre-treatment effect on the potential outcome. I also present test mechanisms (t-test and Kolmogorov-Smirnov test) to check whether the matching method acutally improves the balance of covariates for treatment and control groups. 
 
 Keep in mind that CEM matching is just one of the matching methods that researchers could make use of to do matching. There are several other matching algorithms able to carry out efficient matching, such as Genetic Matching, Entropy Balance Matching, Mahalanobis Distance Matching. Check them out if you are interested in matching methods and see the difference between these methods in their matching results. 
