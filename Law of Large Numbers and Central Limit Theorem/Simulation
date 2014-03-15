@@ -4,6 +4,19 @@ View(data)
 
 rangex <- range(data$X) 
 rangey <- range(data$Y)
+## determine the range of X and Y, 
+## and use the lowest and highest bounds of the more spreadout range to set the xlim
+## of the X axis of X's and Y's histograms
+
+
+pdf("histxy.pdf")
+par(mfrow = c(1,2)) ## to array the two histograms in a row  
+hist(data$X, col = "grey", xlab = c("X"), freq = F, main = c("Histogram of X"), ylim = c(0, 0.2), xlim = c(rangey[1],rangey[2]))
+curve(dnorm(x, mean = mean(data$X), sd = sd(data$X)), add = T, col = "black", lwd = 4)
+
+hist(data$Y,col = "grey",xlab = c("Y"), freq = F, main = c("Histogram of Y"), ylim = c(0,0.2))
+curve(dnorm(x, mean = mean(data$Y), sd = sd(data$Y)), add = T, col = "black", lwd = 4)
+dev.off()
 
 ## to create a function that returns the sample means of X with different sample sizes 
 smean_x <- function(n){
