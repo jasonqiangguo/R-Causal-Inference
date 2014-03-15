@@ -2,8 +2,6 @@
 ## Weighted survey regression and sensitivity analysis ##
 #########################################################
 
-getwd()
-setwd("C:/Study/NYU/Quant II/Pst3")
 
 data<- read.dta("mydata.dta")
 require(survey)
