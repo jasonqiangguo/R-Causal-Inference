@@ -4,15 +4,17 @@ author: |
   | Jason Qiang Guo, 郭强, New York University, qg251@nyu.edu
   | Changdong Zhang, 张长东, Peking University, zhangchd@pku.edu
 date: "June 18, 2015"
+
+documentclass: ctexart
 output:
-  html_document: default
   pdf_document:
     latex_engine: xelatex
+    template: !expr rticles::ctex_template()
 ---
 
 ```{r, message=FALSE, results='hide', warning=FALSE}
 # load packages
-library(knitr)
+require(knitr)
 require(foreign)
 require(car)
 require(stargazer)
