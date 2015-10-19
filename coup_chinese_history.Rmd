@@ -1,0 +1,104 @@
+---
+title: "coup_chines_history"
+author: "Jason Qiang Guo"
+date: "October 19, 2015"
+documentclass: ctexart
+output:
+  pdf_document:
+    fig_caption: yes
+    latex_engine: xelatex
+    template: !expr rticles::ctex_template()
+classoption: "hyperref,"
+---
+
+```{r, message=FALSE, results='hide', warning=FALSE}
+rm(list=ls())
+library(foreign)
+library(ggplot2)
+setwd("/Users/qiangguo/Documents/NYU/Network Analysis/network/dataset")
+```
+
+```{r, message=FALSE, results='hide', warning=FALSE}
+year <- c(-210:1911)
+coup_imperial_kinsmen <- rep(0, length(year))
+coup_defacto_inherit_elite <- rep(0, length(year))
+coup_other_elite <- rep(0, length(year))
+coup_general <- rep(0, length(year))
+revolution <- rep(0, length(year))
+
+## There are several years that multiple coup and revolution events occurred
+## Code for the years that have only one event occur under each category
+year_imperial_kinsmen <- c(-154, 255, 258, 291, 301, 302, 303, 304, 306, 310, 318, 333, 466, 474, 501, 552, 557, 568)
+year_defacto_inherit_elite <- c(-180, -70, 8, 92, 126, 145, 146, 167, 168, 190, 197, 220, 249, 251, 254, 255, 257, 260, 265, 290, 
+                                304, 318, 322, 371, 397, 402, 403, 424, 479, 500)
+year_other_elite <- c(-210, -209, 196, 541)
+year_general <- c(-202, -201, -197, -196, 319, 327, 420, 499, 548, 549, 551, 555, 557, 562)
+year_revolution <- c(-209, 184)
+
+data <- as.data.frame(cbind(year, coup_imperial_kinsmen, coup_defacto_inherit_elite, coup_other_elite, coup_general, revolution))
+for (i in year_imperial_kinsmen){
+  data$coup_imperial_kinsmen[data$year == i] <- 1
+}
+
+for (i in year_defacto_inherit_elite){
+  data$coup_defacto_inherit_elite[data$year == i] <- 1
+}
+
+for (i in year_other_elite){
+  data$coup_other_elite[data$year == i] <- 1
+}
+
+for (i in year_general){
+  data$coup_general[data$year == i] <- 1
+}
+
+for (i in year_revolution){
+  data$revolution[data$year == i] <- 1
+}
+
+## Code for the years that have multiple events occur under each category
+data$coup_defacto_inherit_elite[data$year == -209] <- 6
+data$coup_imperial_kinsmen[data$year == 453] <- 2
+data$coup_imperial_kinsmen[data$year == 494] <- 2
+
+# Function to calculate the number of coup and revolution events every 50 years
+count <- function(n){
+  k <- round(length(year)/50) + 1
+  x <- rep(0, k)
+  for (i in 1:k){
+    v <- subset(data[,n], year >= (50*i - 260) & year < min((50*i - 210), 1912))
+    x[i] <- sum(v)
+      }  
+return(x)
+}    
+
+event_count_dta <- as.data.frame(sapply(2:6, count))
+names(event_count_dta) <- c("coup_imperial_kinsmen", "coup_defacto_inherit_elite", "coup_other_elite", "coup_general", "revolution")
+event_count_dta$year <- c(seq(from = -161, to = 1911, by = 50),1911)
+
+```
+
+```{r, warning=FALSE, results='hide'}
+barplot(event_count_dta$coup_imperial_kinsmen, type = "l")
+barplot(event_count_dta$coup_defacto_inherit_elite, col = "red")
+barplot(event_count_dta$coup_other_elite, col = "green")
+barplot(event_count_dta$coup_general, col = "blue")
+barplot(event_count_dta$revolution, col = "pink")
+
+
+ggplot(event_count_dta, aes(x = year, y = coup_imperial_kinsmen)) +
+  geom_line() + geom_point(size = 2, shape = 20) + theme(panel.grid.major = element_blank(),
+                                                          panel.grid.minor = element_blank(),
+                                                          panel.background = element_blank(),
+                                                          axis.line = element_line(colour = "black"),
+                                                          plot.title = element_text(family="Times",
+                                                                                    face = "bold",
+                                                                                    colour="black"),
+                                                          axis.text.x=element_text(colour="black"),
+                                                          axis.text.y=element_text(colour="black"))
+
+ggplot(event_count_dta, aes(x = year, y = coup_defacto_inherit_elite)) + geom_bar(stat = "identity")
+ggplot(event_count_dta, aes(x = year, y = coup_defacto_inherit_elite)) + geom_line()
+```
+
+
