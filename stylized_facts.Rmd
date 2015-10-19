@@ -1,0 +1,683 @@
+---
+title: "NGOs and government"
+author: |
+  | Jason Qiang Guo, 郭强, New York University, qg251@nyu.edu
+  | Changdong Zhang, 张长东, Peking University, zhangchd@pku.edu
+date: "June 18, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r, message=FALSE, results='hide', warning=FALSE}
+# load packages
+library(knitr)
+require(foreign)
+require(car)
+require(stargazer)
+library(sandwich)
+library(lmtest)
+library(sem)  
+library(AER)
+library(gmodels)
+require(lattice)
+library(dplyr)
+require(lme4)
+library(gdata)
+library(MASS)
+library(mlogit)
+library(gridExtra)
+
+x <- c("ggplot2", "ggmap", "mapdata", "maps","rworldmap", "rgdal",
+       "rgeos", "maptools", "tidyr")
+lapply(x, library, character.only = TRUE)
+```
+
+```{r, message=FALSE, results='hide', warning=FALSE}
+# read the spss data set and set seed
+set.seed(223)
+setwd("/Users/qiangguo/Dropbox/with Changdong")
+data<-read.spss("SO1.sav", to.data.frame=TRUE)
+z <- c(39, 96, 138:140, 306, 353:359, 361:365, 369, 458, 485, 486, 501:503, 527:528,
+  541:545, 593:600, 643, 650, 660:666, 693:697, 699:706, 815:816, 820:823,
+  834:837)
+data <- data[-z,]
+```
+
+```{r, message=FALSE,warning=FALSE}
+##################################
+## summary statistics function ###
+##################################
+
+summary.stats <- function(x){
+  obs <- length(na.omit(x))
+  mean <- mean(na.omit(x))
+  sd <- sqrt(sum((mean - na.omit(x))^2)/length(na.omit(x)))
+  min <- min(na.omit(x))
+  max <- max(na.omit(x))
+  as.data.frame(cbind(obs, mean, sd, min, max))
+}
+```
+
+
+```{r, message=FALSE, results='hide', warning=FALSE, fig.height=7, fig.width=10}
+# category of the NGOs defined by functions
+# the categorization of NGOs seems to be arbitrary, and thus "category" variable can not be included
+# in the empirical analysis
+data$category <- data$sa7a
+data$category <- as.numeric(data$sa7a)
+
+# barplot(height = category[,2], width = 0.4, xlim = c(0, 2), space = 0.3,
+#        col = c(1, "yellow", "hotpink", "lightblue"), axes = TRUE,
+#        legend.text = c("academic", "industrial", "professional", "solidarity"),
+#        xlab = "Category", ylab = "Number of NGOs in each category",
+#        main = "Distribution of category of NGOs")
+
+# the plot below shows that the sampling is a randomization as the distribution of areas from which samples
+# were drawn is approximately normal
+area_freq <- as.data.frame(table(as.factor(data$area)))
+hist(area_freq[,2], prob = TRUE, col = "lightblue", breaks = 25,
+     main = "Histogram of number of observations \n drawn from each area",
+     xlab = "Number of observations")
+lines(density(area_freq[,2]), lty = 2)
+lines(density(rnorm(25, mean = mean(area_freq[,2]), sd = sd(area_freq[,2]))), col = "red")
+legend("topright", legend = c("Actual Distribution","Simulated Normal Distribution"),
+       col = c("black", "red"), lty = c(2, 1))
+```
+
+```{r,message=FALSE,results='hide',warning=FALSE}
+# list the variable names needed for this research
+y <- c("category", "area", "Population", "government_policy_change", "government_consultation",
+      "funding_government_ratio", "funding_donation_ratio", "funding_member_ratio",
+      "funding_service_ratio", "funding_other_ratio", "media_effects",
+      "meeting_times", "meeting_effects", "funding_government", "funding_member","funding_donation",
+      "funding_service","funding_other", "report", "report_effects", "phonenletter",
+      "phonenletter_effects", "member_phonenletter", "member_phonenletter_effects", 
+      "personal_suggestion","personal_suggestion_effects", "media", 
+      "ally", "ally_effects", "legal", "legal_effects", "petition", "petition_effects",
+      "convene_meeting", "convene_meeting_effects", "PGDP", "ind_member", "group_member",
+      "purpose_policy", "revenue_from_supervisory", "budget")
+```
+
+
+```{r, warning=FALSE,message=FALSE}
+##############################################################################
+### through which channel the NGOs effectively change government policies  ###
+##############################################################################
+
+
+# meetings times with local government in 2009
+data$meeting_times <- data$T_C3A
+# assign 0 to observations with NAs, we take no response as no meeting
+# with local government, same for other channels
+data$meeting_times[is.na(data$meeting_times)] <- 0
+summary.stats(data$meeting_times)
+
+# self-reported effects of the meeting (for all self-reported effects
+# of measures from T_C3B to T_C3T, 3 means a huge effect, 2 moderate, 1 no)
+data$meeting_effects <- data$T_C3B
+data$meeting_effects <- as.numeric(data$meeting_effects)
+
+# assign 1 (no effect) to observations that report
+# no meeting with local government 
+data$meeting_effects[data$meeting_times == 0] <- 1
+table(data$meeting_effects)
+
+# self-reported times of report submission to local government
+data$report <- data$T_C3C
+data$report[is.na(data$report)] <- 0
+summary.stats(data$report)
+
+# self-reported effects of report submission to local government
+data$report_effects <- data$T_C3D
+data$report_effects <- as.numeric(data$report_effects)
+
+# assign 1 (no effect) to observations that report no submission to local government
+data$report_effects[data$report == 0] <- 1
+
+# self-reported times of telephone or letters
+data$phonenletter <- data$T_C3E
+data$phonenletter[is.na(data$phonenletter)] <- 0
+summary.stats(data$phonenletter)
+
+# self-reported effects of telephone or letters
+data$phonenletter_effects <- data$T_C3F
+data$phonenletter_effects <- as.numeric(data$phonenletter_effects)
+
+# assign 1 (no effect) to observations that report
+# no telephone or letters to local government 
+data$phonenletter_effects[data$phonenletter == 0] <- 1
+
+# self-reported times of persuading members to call or write letters to local government
+data$member_phonenletter <- data$T_C3G
+data$member_phonenletter[is.na(data$member_phonenletter)] <- 0
+summary.stats(data$member_phonenletter)
+
+# self-reported effects of persuading members to call or write letters to local government
+data$member_phonenletter_effects <- data$T_C3H
+data$member_phonenletter_effects <- as.numeric(data$member_phonenletter_effects)
+
+# assign 1 (no effect) to observations that report no persuasion
+data$member_phonenletter_effects[data$member_phonenletter == 0] <- 1
+
+# self-reported times of using personal ties to make suggestions to local government
+data$personal_suggestion <- data$T_C3I
+data$personal_suggestion[is.na(data$personal_suggestion)] <- 0
+summary.stats(data$personal_suggestion)
+
+# self-reported effects of using personal ties to make suggestions to local government
+data$personal_suggestion_effects <- data$T_C3J
+data$personal_suggestion_effects <- as.numeric(data$personal_suggestion_effects)
+
+# assign 1 to observations that report no suggestions using personal ties
+data$personal_suggestion_effects[data$personal_suggestion == 0] <- 1
+
+# self-reported times of expressing concerns through media
+data$media <- data$T_C3K
+data$media[is.na(data$media)] <- 0
+summary.stats(data$media)
+
+# self-reported effects of expressing concerns through media
+data$media_effects <- data$T_C3L
+data$media_effects <- as.numeric(data$media_effects)
+
+# assign 1 to observations that report no concerns through media
+data$media_effects[data$media == 0] <- 1
+
+# self-reported times of allying with other associations
+data$ally <- data$T_C3M
+data$ally[is.na(data$ally)] <- 0
+summary.stats(data$ally)
+
+# self-reported effects of allying with other associations
+data$ally_effects <- data$T_C3N
+data$ally_effects <- as.numeric(data$ally_effects)
+
+# assign 1 to observations that report no ally 
+data$ally_effects[data$ally == 0] <- 1
+
+# self-reported dealing with government through legal procedures
+data$legal <- data$T_C3O
+data$legal[is.na(data$legal)] <- 0
+summary.stats(data$legal)
+
+# self-reported effects of dealing with government through legal procedures
+data$legal_effects <- data$T_C3P
+data$legal_effects <- as.numeric(data$legal_effects)  
+
+# assign 1 to observations that report did not go launch legal procedures
+data$legal_effects[data$legal == 0] <- 1
+
+# self-reported times of petition 
+data$petition <- data$T_C3Q
+data$petition[is.na(data$petition)] <- 0
+summary.stats(data$petition)
+
+# self-reported effects of petition
+data$petition_effects <- data$T_C3R
+data$petition_effects <- as.numeric(data$petition_effects)
+
+# assign 1 to observations that report no petition
+data$petition_effects[data$petition == 0] <- 1
+
+# self-reported times of convening a massive meeting
+data$convene_meeting <- data$T_C3S
+data$convene_meeting[is.na(data$convene_meeting)] <- 0
+summary.stats(data$convene_meeting)
+
+# self-reported effects of convening a massive meeting
+data$convene_meeting_effects <- data$T_C3T
+data$convene_meeting_effects <- as.numeric(data$convene_meeting_effects)
+
+# assign 1 to observations that report no meeting convention
+data$convene_meeting_effects[data$convene_meeting == 0] <- 1
+```
+
+```{r}
+###########################################
+# interactions with government in general #
+###########################################
+
+# whether government consults the NGOs, 1 yes, 2 no after converting to numerics 
+data$government_consultation <- data$T_C8
+data$government_consultation <- as.numeric(data$government_consultation)
+data$government_consultation[is.na(data$government_consultation)] <- 2
+# recode the variable, 1 as yes, 0 as no
+data$government_consultation <- data$government_consultation - 1
+data$government_consultation <- recode(data$government_consultation, "1 = 0; else = 1")
+table(data$government_consultation)
+summary.stats(data$government_consultation)
+
+
+# delete the missings from the consultation variable
+data$government_consultation_origin <- data$T_C8
+data$government_consultation_origin <- as.numeric(data$government_consultation)
+
+
+# self-reported government policy influence, 1 yes, 2 no after converting to numerics
+data$government_policy_change <- data$T_C9
+data$government_policy_change <- as.numeric(data$government_policy_change)
+data$government_policy_change[is.na(data$government_policy_change)] <- 2
+# recode the variable, 1 as yes, 0 as no
+data$government_policy_change <- data$government_policy_change - 1
+data$government_policy_change <- recode(data$government_policy_change, "1 = 0; else = 1")
+table(data$government_policy_change)
+summary.stats(data$government_policy_change)
+
+# delete the missings from the policy change variable 
+data$government_policy_change_origin <- data$T_C9
+data$government_policy_change_origin <- as.numeric(data$government_policy_change_origin)
+data$government_policy_change_origin[data$government_policy_change_origin == 2] <- 0
+```
+
+```{r, fig.width = 8, fig.height=6}
+# plot the cross-table of consultation with government and policy influence
+# pdf("ngo_policy_consultation.pdf", width = 8, height = 6)
+ggplot(data, aes(as.factor(government_consultation), fill=as.factor(government_policy_change))) +
+  geom_bar(binwidth = 0.05) + theme(panel.grid.major = element_blank(),
+                                    panel.grid.minor = element_blank(),
+                                    panel.background = element_blank(),
+                                    axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(family="Times",
+                                                              face = "bold",
+                                                              colour="black"),
+                                    axis.text.x=element_text(colour="black"),
+                                    axis.text.y=element_text(colour="black")) +
+  scale_x_discrete(name = "Government Consultation", breaks=c(0, 1),
+                   labels=c("No Consultation", "Consultation")) +
+  ggtitle("") +
+  labs(fill = "Government Policy \n Change") +
+  scale_fill_brewer(palette="Pastel1",
+                    labels=c("No Policy Change", "Policy Change"))
+# dev.off()
+```
+
+```{r}
+# ratio of funding from different sources
+# data$revenue <- data$T_D2
+# data$revenue_from_government_ratio <- data$T_D2A
+# data$revenue_from_donation_ratio <- data$T_D2C
+# data$revenue_from_service_ratio <- data$T_D2D
+# data$revenue_other_source_ratio <- data$T_D2E
+
+# budget
+data$budget <- data$T_D4
+# to make the measure consistent in scale, divide observations with values >= 10,000 by 10,000
+data$budget[which(data$budget >= 10000)] <- data$budget[which(data$budget >= 10000)]/10000
+
+# funding from government 
+data$funding_government <- data$sd2a
+data$funding_government <- as.double(as.character(data$funding_government))
+data$funding_government[319] <- 29
+data$funding_government[302] <- 1.2
+
+# to make the measure consistent in scale, divide observations with values >= 3,000 by 10,000
+data$funding_government[which(data$funding_government >= 3000)] <- data$funding_government[which(data$funding_government >= 3000)]/10000
+
+# funding from membership fees 
+data$funding_member <- data$sd2c
+data$funding_member <- as.double(as.character(data$funding_member))
+data$funding_member[303] <- 52.1
+data$funding_member[319] <- 13.5
+data$funding_member[345] <- 32
+data$funding_member[351] <- 2.0366
+data$funding_member[374] <- 100
+# to make the measure consistent in scale, divide observations with values >= 1,000 by 10,000
+data$funding_member[which(data$funding_member >= 1000)] <- data$funding_member[which(data$funding_member >= 1000)]/10000
+
+# funding from donation
+data$funding_donation <- data$sd2e
+data$funding_donation <- as.double(as.character(data$funding_donation))
+data$funding_donation[319] <- 3
+data$funding_donation[374] <- 30
+data$funding_donation[data$funding_donation == 684] <- 0.0684
+# to make the measure consistent in scale, divide observations with values >= 1,000 by 10,000
+data$funding_donation[which(data$funding_donation >= 1000)] <- data$funding_member[which(data$funding_donation >= 1000)]/10000
+
+# funding from social services
+data$funding_service <- data$sd2g
+data$funding_service <- as.double(as.character(data$funding_service))
+data$funding_service[163] <- 0.25
+data$funding_service[319] <- 4.5
+data$funding_service[which(data$funding_service == 1500)] <- 0.15
+# to make the measure consistent in scale, divide observations with values >= 4,000 by 10,000
+data$funding_service[which(data$funding_service >= 4000)] <- data$funding_service[which(data$funding_service >= 4000)]/10000
+
+# other funding source
+data$funding_other <- data$sd2i
+data$funding_other <- as.double(as.character(data$funding_other))
+data$funding_other[221] <- 34
+data$funding_other[303] <- 120
+data$funding_other[319] <- 1.5
+data$funding_other[which(data$funding_other == 999)] <- NA
+# to make the measure consistent in scale, divide observations with values >= 1,000 by 10,000
+data$funding_other[which(data$funding_other >= 1000)] <- data$funding_other[which(data$funding_other >= 1000)]/10000
+
+# total income, funding or service revenue received
+data$funding_total <- data$funding_government + data$funding_member + data$funding_service + 
+  data$funding_donation + data$funding_other
+
+data$funding_government_ratio <- data$funding_government/data$funding_total
+data$funding_member_ratio <- data$funding_member/data$funding_total
+data$funding_service_ratio <- data$funding_service/data$funding_total
+data$funding_donation_ratio <- data$funding_donation/data$funding_total
+data$funding_other_ratio <- data$funding_other/data$funding_total
+
+summary.stats(data$funding_government_ratio)
+
+data$binary_funding_government <- recode(data$funding_government, "0 = 0; NA = NA; else = 1")
+summary.stats(data$binary_funding_government)
+summary.stats(data$fundingsource_count)
+
+funding <- cbind(data$funding_government, data$funding_member, data$funding_service, data$funding_donation, data$funding_other)
+
+x1 <- numeric(length = nrow(funding))
+x2 <- numeric(length = nrow(funding))
+x3 <- numeric(length = nrow(funding))
+x4 <- numeric(length = nrow(funding))
+x5 <- numeric(length = nrow(funding))
+
+x1[which(data$funding_government > 0)] <- 1
+x2[which(data$funding_member > 0)] <- 1
+x3[which(data$funding_service > 0)] <- 1
+x4[which(data$funding_donation > 0)] <- 1
+x5[which(data$funding_other > 0)] <- 1
+
+# count the funding sources
+data$fundingsource_count <- x1 + x2 + x3 + x4 + x5
+
+pdf("ngo_funding.pdf", width = 10, height = 6)
+par(mfrow = c(1, 2))
+# plot of the density of ratios of funding received by ngos
+plot(density(na.omit(data$funding_government_ratio)), ylim = c(0, 8), xlab = "Funding Ratios (a)", 
+     main = "")
+lines(density(na.omit(data$funding_member_ratio)), lty = 2)
+lines(density(na.omit(data$funding_service_ratio)), lty = 3)
+lines(density(na.omit(data$funding_donation_ratio)), lty = 4)
+lines(density(na.omit(data$funding_other_ratio)), lty = 5)
+legend("topright", c("Ratio of government funding", "Ratio of membership fees", "Ratio of service levies", "Ratio of donations", "Ratio of other sources of funding"), bty = "n",
+       lty = 1:5, cex = 0.7)
+# distribution of NGOs' funding sources
+hist(data$fundingsource_count, breaks = 25, xlab = "Number of funding sources (b)", main = "")
+dev.off()
+
+# number of individual members in an organization
+data$ind_member <- data$sa4a
+
+# number of group members in an organization
+data$group_member <- data$sa4b
+
+# revenue from supervisory authority
+data$T_B3C <- as.numeric(data$T_B3C)
+data$T_B3C[data$T_B3C == 2] <- 0
+data$revenue_from_supervisory <- data$T_B3C
+
+# purpose of establishing the NGO
+data$purpose_policy <- as.numeric(data$sa6e)
+data$purpose_policy[data$purpose_policy == 2] <- 0
+summary.stats(data$purpose_policy)
+purpose_policy_data <- as.data.frame(na.omit(data$purpose_policy))
+names(purpose_policy_data) <- "Policy_Purpose"
+
+# select all the relevant variables into a new dataset
+clean_data <- subset(data, select = y)
+
+clean_data$binary_funding_government <- data$binary_funding_government
+clean_data$fundingsource_count <- data$fundingsource_count
+
+# administrative level of the NGO
+clean_data$adm_level <- as.numeric(data$Adm_area)
+summary(data$Adm_area)
+summary.stats(clean_data$adm_level)
+
+# create a budget (logged) variable, assign -1 to observations with budget value < 1
+clean_data$budget <- data$budget
+summary.stats(clean_data$budget)
+log_budget <- log(data$budget)
+log_budget[data$budget < 1] <- -1
+clean_data$log_budget <- log_budget
+clean_data$appointee <- as.numeric(data$T_B3D)
+clean_data$appointee[clean_data$appointee == 2] <- 0
+summary.stats(clean_data$appointee)
+
+# adm_level of the head of an NGO
+clean_data$head_adm_level <- as.numeric(data$T_A16F)
+summary.stats(clean_data$head_adm_level)
+
+# past employment record of the head of an NGO
+clean_data$past_employment <- as.numeric(data$T_A16E)
+summary.stats(clean_data$past_employment)
+
+pdf("ngo_political.pdf", width = 10, height = 8)
+par(mfrow = c(2, 2))
+hist(clean_data$head_adm_level, xaxt = 'n', main ="", xlab = "Administrative rank of NGO leaders (a)")
+axis(1, at = c(1, 2, 3, 4),labels=c("rank 9 to 13", "rank 8 to 11 ", "rank 5 to 7", "rank 3 to 4"))
+
+hist(clean_data$adm_level, xaxt = 'n', main="",
+     xlab = "Adminstrative level of NGOs' registration (b)" )
+axis(1, at = c(1, 2, 3), labels = c("provincial level", "prefecture/district level", "county level"))
+
+hist(clean_data$past_employment, breaks = 25, main ="", xaxt = 'n', xlab = "Categories of past employment of NGO leaders (c)", ylim = c(0, 500))
+frequency <- as.vector(table(clean_data$past_employment)) + 30
+text(c(1.5, 2, 3.5, 4, 4.8), frequency, labels = c("government", "enterprise", "institutional organization", "social organization", "others"))
+dev.off()
+
+# spontaneous organization
+clean_data$T_A5 <- data$T_A5 
+clean_data$spontaneous <- data$T_A5
+clean_data$spontaneous <- as.numeric(clean_data$spontaneous)
+summary.stats(clean_data$spontaneous)
+table(clean_data$spontaneous)
+data$spontaneous <- clean_data$spontaneous
+spontaneous_data <- na.omit(clean_data$spontaneous)
+spontaneous_data <- as.data.frame(spontaneous_data)
+names(spontaneous_data)[1] <- "spontaneous"
+
+# plot of distribution of NGOs with different purposes of formation
+#pdf("ngo_plot1.pdf", height = 6, width = 12)
+plot_purpose <- ggplot(purpose_policy_data, aes(as.factor(Policy_Purpose), fill=as.factor(Policy_Purpose)))+
+  geom_bar(binwidth = 0.05) +  theme(panel.grid.major = element_blank(),
+                                     panel.grid.minor = element_blank(),
+                                    panel.background = element_blank(),
+                                    axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(family="Times",
+                                                              face = "bold",
+                                                              colour="black"),
+                                    legend.position = "none",
+                                    axis.text.x=element_text(colour="black"),
+                                    axis.text.y=element_text(colour="black")) +
+  scale_x_discrete(name = "", breaks=c(0, 1),
+                   labels=c("No Policy Purpose", "Seek Policy Influence")) +
+  ggtitle("Policy purpose when NGOs were founded")
+
+# plot the distribution of NGOs with different founding origins
+plot_origin <- ggplot(spontaneous_data, aes(as.factor(spontaneous), fill=as.factor(spontaneous)))+
+  geom_bar(binwidth = 0.05) +  theme(panel.grid.major = element_blank(),
+                                     panel.grid.minor = element_blank(),
+                                    panel.background = element_blank(),
+                                    axis.line = element_line(colour = "black"),
+                                    plot.title = element_text(family="Times",
+                                                              face = "bold",
+                                                              colour="black"),
+                                    legend.position = "none",
+                                    axis.text.x=element_text(colour="black"),
+                                    axis.text.y=element_text(colour="black")) +
+  scale_x_discrete(name = "", breaks=c(1, 2, 3),
+                   labels=c("Voluntary", "Government Decided", "Both")) +
+  ggtitle("Whether the founding of the NGO \n is voluntary or decided by government")
+
+grid.arrange(plot_purpose, plot_origin, ncol=2)
+#dev.off()
+
+# establishment time
+clean_data$time <- 2010 - data$T_A2
+summary.stats(clean_data$time)
+
+# number of full-time staff
+clean_data$full_time_staff <- data$T_a11
+summary.stats(clean_data$full_time_staff)
+# log full time staff
+clean_data$log_full_time_staff <- log(clean_data$full_time_staff)
+clean_data$log_full_time_staff[which(clean_data$log_full_time_staff == -Inf)] <- -1
+
+
+# whether members voluntarily join the NGO
+clean_data$voluntary <- as.numeric(data$sb4)
+
+# wage_staff
+clean_data$wage_staff <- data$T_D8
+clean_data$wage_staff[which(clean_data$wage_staff <= 5)] <- clean_data$wage_staff[which(clean_data$wage_staff <= 5)] * 1000
+
+# self-reported influence on government 
+data$government_influence <- as.numeric(data$T_C18)
+data$government_influence[data$government_influence == 6] <- NA
+clean_data$government_influence <- data$government_influence
+
+# whether there is a communist party branch in the NGO
+clean_data$party_org <- as.numeric(data$T_B8)
+clean_data$party_org[clean_data$party_org == 2] <- 0
+summary.stats(clean_data$party_org)
+
+# associate with how many other NGOs? 
+clean_data$close_ngos <- data$sb18
+
+# percentage of funding from individual members
+clean_data$ind_ratio <- data$sb5a
+
+## log the number of individual members  
+data$log_ind_member <- log(data$ind_member)
+clean_data$ind_member <- data$ind_member
+summary.stats(data$ind_member)
+data$log_ind_member[data$log_ind_member == -Inf] <- -1
+clean_data$log_ind_member <- data$log_ind_member
+
+# self-reported influence on the community
+data$community_influence <- as.numeric(data$T_C19)
+data$community_influence[data$community_influence == 6] <- NA
+clean_data$community_influence <- data$community_influence
+
+# attach data$government_consultation_origin and data$government_policy_change_origin to clean_data
+clean_data$government_consultation_origin <- data$government_consultation_origin
+clean_data$government_policy_change_origin <- data$government_policy_change_origin
+
+######################################################
+## Recode frequency variables into binary variables ##
+######################################################
+
+clean_data$binary_meeting <- recode(clean_data$meeting_times, "0 = 0; else = 1")
+clean_data$binary_report <- recode(clean_data$report, "0 = 0; else = 1")
+clean_data$binary_phonenletter <- recode(clean_data$phonenletter, "0 = 0; else = 1")
+clean_data$binary_member_phonenletter <- recode(clean_data$member_phonenletter, "0 = 0; else = 1")
+clean_data$binary_personal_suggestion <- recode(clean_data$personal_suggestion, "0 = 0; else = 1")
+clean_data$binary_media <- recode(clean_data$media, "0 = 0; else = 1")
+clean_data$binary_ally <- recode(clean_data$ally, "0 = 0; else = 1")
+clean_data$binary_legal <- recode(clean_data$legal, "0 = 0; else = 1")
+clean_data$binary_petition <- recode(clean_data$petition, "0 = 0; else = 1")
+clean_data$binary_convene_meeting <- recode(clean_data$convene_meeting, "0 = 0; else = 1")
+```
+
+```{r, warning = FALSE}
+##########################
+## statistical analysis ##
+##########################
+
+## what kind of NGOs are more likely to be consulted by government?
+
+## baseline
+lm1 <- glm(government_consultation ~ as.factor(party_org) + as.factor(appointee) + 
+             binary_funding_government + fundingsource_count,
+            data = clean_data, family = binomial("logit"))
+
+lm2 <- glm(government_consultation ~ as.factor(party_org) + as.factor(appointee) + 
+             binary_funding_government + fundingsource_count +
+              budget + as.factor(purpose_policy) + as.factor(spontaneous) + 
+              as.factor(adm_level) + ind_member + full_time_staff +
+              as.factor(past_employment) + 
+              as.factor(head_adm_level) + time,
+            data = clean_data, family = binomial("logit"))
+
+stargazer(lm1, lm2)
+
+
+lm3 <- glm(government_consultation ~ as.factor(party_org) + as.factor(appointee) + 
+             funding_government_ratio,
+            data = clean_data, family = binomial("logit"))
+
+
+lm4 <- glm(government_consultation ~ as.factor(party_org) + as.factor(appointee) + 
+             funding_government_ratio + budget + as.factor(spontaneous) +
+             as.factor(purpose_policy) + full_time_staff + ind_member + as.factor(adm_level) +
+             as.factor(past_employment) + as.factor(head_adm_level) + time,
+            data = clean_data, family = binomial("logit"))
+
+
+stargazer(lm3, lm4)
+
+## what kind of NGOs are more likely to have actual lobbying effects on government decision making?
+
+lm5 <- glm(government_policy_change ~ as.factor(party_org) + as.factor(appointee) + 
+             binary_funding_government + fundingsource_count,
+            data = clean_data, family = binomial("logit"))
+
+lm6 <- glm(government_policy_change ~ as.factor(party_org) + as.factor(appointee) + 
+             binary_funding_government + fundingsource_count +
+              budget + as.factor(purpose_policy) + as.factor(spontaneous) + 
+              as.factor(adm_level) + ind_member + full_time_staff +
+              as.factor(past_employment) + 
+              as.factor(head_adm_level) + time,
+            data = clean_data, family = binomial("logit"))
+stargazer(lm5, lm6)
+
+lm7 <- glm(government_policy_change ~ as.factor(party_org) + as.factor(appointee) + 
+             funding_government_ratio,
+            data = clean_data, family = binomial("logit"))
+
+lm8 <- glm(government_policy_change ~ as.factor(party_org) + as.factor(appointee) + 
+             funding_government_ratio + budget + as.factor(spontaneous) +
+             as.factor(purpose_policy) + full_time_staff + ind_member + as.factor(adm_level) +
+             as.factor(past_employment) + as.factor(head_adm_level) + time,
+            data = clean_data, family = binomial("logit"))
+stargazer(lm7, lm8)
+
+## through which channel do NGOs affect government policy making
+summary(glm(binary_ally ~ log_budget + as.factor(party_org) + fundingsource_count + 
+              log_budget + log_full_time_staff + as.factor(binary_funding_government) + 
+              as.factor(binary_funding_government):fundingsource_count +
+              as.factor(adm_level) + as.factor(past_employment) + as.factor(appointee) +
+              as.factor(head_adm_level) + time, data = clean_data, 
+              family = binomial("logit")))
+
+summary(glm(binary_member_phonenletter ~ log_budget + as.factor(party_org) + fundingsource_count +
+              log_full_time_staff + as.factor(binary_funding_government) + 
+              as.factor(binary_funding_government):fundingsource_count +
+              as.factor(adm_level) + as.factor(past_employment) + as.factor(head_adm_level) +
+              time, data = clean_data, family = binomial("logit")))
+
+summary(glm(binary_media ~ log_budget + as.factor(party_org) + fundingsource_count +
+              as.factor(binary_funding_government) + 
+              as.factor(binary_funding_government):fundingsource_count + log_full_time_staff +
+              as.factor(adm_level) + 
+              as.factor(past_employment) + as.factor(head_adm_level) +
+              time, data = clean_data, family = binomial("logit")))
+
+summary(glm(binary_convene_meeting ~ log_budget + as.factor(party_org) + fundingsource_count + 
+              log_budget:as.factor(party_org) + log_full_time_staff + 
+              as.factor(adm_level) +  as.factor(past_employment) +
+              as.factor(head_adm_level) + time, data = clean_data, family = binomial("logit")))
+
+summary(glm(binary_meeting ~ log_budget + as.factor(party_org) + fundingsource_count +
+              log_budget:as.factor(party_org) + log_full_time_staff + 
+              as.factor(adm_level) +as.factor(past_employment) + as.factor(head_adm_level) +
+              time, data = clean_data, family = binomial("logit")))
+
+summary(glm(binary_report ~ log_budget + as.factor(party_org) + fundingsource_count +
+              log_budget:as.factor(party_org) + log_full_time_staff + as.factor(adm_level) + 
+              as.factor(past_employment) + as.factor(head_adm_level) +
+              time, data = clean_data, family = binomial("logit")))
+
+summary(glm(binary_personal_suggestion ~ log_budget + as.factor(party_org) +
+              log_budget:as.factor(party_org) + log_full_time_staff + fundingsource_count +
+              as.factor(adm_level) + as.factor(past_employment) + as.factor(head_adm_level) +
+              time + close_ngos, data = clean_data, family = binomial("logit")))
+
+```
