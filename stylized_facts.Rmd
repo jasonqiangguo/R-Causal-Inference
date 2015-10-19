@@ -5,6 +5,7 @@ author: |
   | Changdong Zhang, 张长东, Peking University, zhangchd@pku.edu
 date: "June 18, 2015"
 output:
+  html_document: default
   pdf_document:
     latex_engine: xelatex
 ---
@@ -17,12 +18,10 @@ require(car)
 require(stargazer)
 library(sandwich)
 library(lmtest)
-library(sem)  
 library(AER)
 library(gmodels)
 require(lattice)
 library(dplyr)
-require(lme4)
 library(gdata)
 library(MASS)
 library(mlogit)
@@ -448,7 +447,6 @@ summary.stats(clean_data$head_adm_level)
 clean_data$past_employment <- as.numeric(data$T_A16E)
 summary.stats(clean_data$past_employment)
 
-pdf("ngo_political.pdf", width = 10, height = 8)
 par(mfrow = c(2, 2))
 hist(clean_data$head_adm_level, xaxt = 'n', main ="", xlab = "Administrative rank of NGO leaders (a)")
 axis(1, at = c(1, 2, 3, 4),labels=c("rank 9 to 13", "rank 8 to 11 ", "rank 5 to 7", "rank 3 to 4"))
@@ -460,7 +458,6 @@ axis(1, at = c(1, 2, 3), labels = c("provincial level", "prefecture/district lev
 hist(clean_data$past_employment, breaks = 25, main ="", xaxt = 'n', xlab = "Categories of past employment of NGO leaders (c)", ylim = c(0, 500))
 frequency <- as.vector(table(clean_data$past_employment)) + 30
 text(c(1.5, 2, 3.5, 4, 4.8), frequency, labels = c("government", "enterprise", "institutional organization", "social organization", "others"))
-dev.off()
 
 # spontaneous organization
 clean_data$T_A5 <- data$T_A5 
