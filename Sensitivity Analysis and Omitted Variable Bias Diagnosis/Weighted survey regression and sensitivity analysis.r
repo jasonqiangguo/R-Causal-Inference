@@ -18,6 +18,7 @@ delta <- rnorm(nrow(data2), 0, 1) ## Generate deltas from a normal distribution
 X <- "age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96"
 out<- lm(paste0("vote05_1~abd_1+", X), data2) ## regression without unobserved confounder U
 
+## use the properties of logit transformation to generate the unobserved confounder U
 genConfound<- function (x, y) {
   e <- rnorm(nrow(data2), 0, 1)
   w <- x * data2$abd_1 + y * data2$vote05_1 + e
@@ -25,9 +26,9 @@ genConfound<- function (x, y) {
   U <- rbinom(nrow(data2), 1, p)
   return(U)
 }
-## use the properties of logit transformation to generate the unobserved confounder U
 
 
+## generate the estimated TE including the unobserved confounding covariate U
 results <- NULL
 for (i in seq_len(length(alpha))) {
   U <- genConfound(alpha[i], delta[i])
@@ -38,7 +39,6 @@ for (i in seq_len(length(alpha))) {
   res <- c(estTE = estTE, corD = corD, corY = corY)
   results <- rbind(results, res)
 }
-## generate the estimated TE including the unobserved confounding covariate U
 head(results)
 
 pdf('sensitivity1.pdf')
@@ -72,6 +72,7 @@ delta <- rnorm(nrow(data2), 0, 1) ## Generate deltas from a normal distribution
 X <- "age + age2 + age3 + fthr_ed + mthr_ed + hh_size96 + hh_wealth96"
 out2<- lm(paste0("data2$comm_mobil_1~abd_1+", X), data2) ## regression without unobserved confounder U
 
+## use the properties of logit transformation to generate the unobserved confounder U
 genConfound2<- function (x, y) {
   e <- rnorm(nrow(data2), 0, 1)
   w <- x * data2$abd_1 + y * data2$comm_mobil_1 + e
@@ -79,9 +80,8 @@ genConfound2<- function (x, y) {
   U <- rbinom(nrow(data2), 1, p)
   return(U)
 }
-## use the properties of logit transformation to generate the unobserved confounder U
 
-
+## generate the estimated TE including the unobserved confounding covariate U
 results1 <- NULL
 for (i in seq_len(length(alpha))) {
   U <- genConfound2(alpha[i], delta[i])
@@ -92,7 +92,6 @@ for (i in seq_len(length(alpha))) {
   res <- c(estTE = estTE, corD = corD, corY = corY)
   results1 <- rbind(results1, res)
 }
-## generate the estimated TE including the unobserved confounding covariate U
 head(results1)
 
 pdf('sensitivity2.pdf')
